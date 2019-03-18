@@ -1,7 +1,7 @@
 function testReverso() {
     processReversoSource({
         userName: 'vpasechnyk',
-        sheetNamePrefix: 'ReversoTest',
+        sheetNamePrefix: 'TestReverso',
         deck: 'test',
         srcLang: "en",
         trgLang: "ru",
@@ -12,7 +12,7 @@ function testReverso() {
 var processReversoSource = function (configuration) {
     const COLUMN_TITLES = ['md5', 'text', 'srcCollocation', 'targetCollocation'];
     const REVERSO_REQUEST_BUCKET_SIZE = 10;
-    const ANKI_TAGS = 'auto';
+    const ANKI_TAGS = 'auto reverso';
     const userName = configuration.userName;
     const deck = configuration.deck;
     const srcLang = configuration.srcLang;
@@ -96,47 +96,47 @@ var processReversoSource = function (configuration) {
             return;
         }
         var md5 = collocationDto.md5;
-        var srcCollocation = collocationDto.srcContext;
-        var targetCollocation = collocationDto.trgContext;
         if (!existingCollocations[md5]) {
-            createCardForCollocation(md5, srcCollocation, targetCollocation);
+            createCardForCollocation(collocationDto);
         } else {
-            Logger.log("Already exist md5: %s, src: %s, dst: %s ", md5, srcCollocation, targetCollocation);
+            Logger.log("Already exist md5: %s, src: %s, dst: %s ", md5, collocationDto.srcContext, collocationDto.trgContext);
         }
     }
 
-    function createCardForCollocation(md5, srcCollocation, targetCollocation) {
-        Logger.log("Adding phrase md5: %s, src: %s, dst: %s ", md5, srcCollocation, targetCollocation);
-        var clozeText = getClozeTextForCollocations(srcCollocation, targetCollocation);
+    function createCardForCollocation(collocationDto) {
+        Logger.log("Adding phrase md5: %s, src: %s, dst: %s ", collocationDto.md5, collocationDto.srcContext, collocationDto.trgText);
+        var clozeText = getClozeTextForCollocations(collocationDto);
         clozeText = removeUnacceptableForAnkiSymbols(clozeText);
         var result = anki.addItem(deck, cardType, [
             [clozeText, ""], ANKI_TAGS
         ]);
         if (result) {
-            collocationsSheet.appendRow([md5, clozeText, srcCollocation, targetCollocation]);
+            collocationsSheet.appendRow([collocationDto.md5, collocationDto.clozeText, collocationDto.srcContext, collocationDto.trgText]);
         } else {
-            Logger.log("Failed to add phrase md5: %s, src: %s, dst: %s ", md5, srcCollocation, targetCollocation);
+            Logger.log("Failed to add phrase md5: %s, src: %s, dst: %s ", collocationDto.md5, collocationDto.srcContext, collocationDto.trgText);
         }
     }
 
-    function getClozeTextForCollocations(srcCollocation, targetCollocation) {
-        var sourceEmphasedText = getEmphasedText(srcCollocation);
-        var targetEmphasedText = getEmphasedText(targetCollocation);
-
-        var sourceCloze = srcCollocation.split(/<em[^>]*>/).join("{{c1::").split("</em>").join("::" + targetEmphasedText + "}}")
-        var targetCloze = targetCollocation.split(/<em[^>]*>/).join("{{c2::").split("</em>").join("::" + sourceEmphasedText + "}}")
-        var clozeText = sourceCloze + "<br/>" + targetCloze;
+    function getClozeTextForCollocations(collocationDto) {
+        var sourceCloze = getClozeFromEmhasedText(collocationDto.srcContext, 'c1', collocationDto.trgText);
+        var targetCloze = getClozeFromEmhasedText(collocationDto.trgContext, 'c2', collocationDto.srcText);
+        var clozeText = sourceCloze + "<hr/>" + targetCloze;
         return clozeText;
     }
 
-    function getEmphasedText(text) {
-        var re = /<em[^>]*>[^<]*<\/em>/g;
-        var match = text.match(re);
-        var matchWithoutEm = match.map(function (a) {
-            return a.replace(/<em[^>]*>/, '').replace('</em>', '');
-        });
-
-        var emphasedText = matchWithoutEm.join(' ');
-        return emphasedText;
+    function getClozeFromEmhasedText(originalText, tag, hint) {
+        var textWithReplacedStart = originalText.split(/<em[^>]*>/).join("{{" + tag + "::");
+        var clozeChunks = textWithReplacedStart.split("</em>");
+        var cloze = '';
+        for (var i = 0; i < clozeChunks.length; i++) {
+            if (i === 1) {
+                // add hint only to first occurence
+                cloze += "::" + hint + "}}";
+            } else if (i > 1) {
+                cloze += "}}";
+            }
+            cloze += clozeChunks[i];
+        }
+        return cloze;
     }
 };
