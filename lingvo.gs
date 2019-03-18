@@ -20,8 +20,8 @@ function processLingvoSource(configuration) {
     const wordCardType = configuration.wordCardType;
     const sourceFolderName = configuration.sourceFolderName;
     const processedFolderName = configuration.processedFolderName;
-    const collocationsSpreadsheetName = sheetNamePrefix + "Collocations";
-    const wordsSpreadsheetName = sheetNamePrefix + "Words";
+    const collocationsSpreadsheetName = sheetNamePrefix + "Collocations" + deck;
+    const wordsSpreadsheetName = sheetNamePrefix + "Words" + deck;
     const collocationsSpreadsheet = getSpreadSheet(collocationsSpreadsheetName, collocationsColumnTitles);
     const wordsSpreadsheet = getSpreadSheet(wordsSpreadsheetName, wordsColumnTitles);
 
