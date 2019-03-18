@@ -9,7 +9,7 @@ function main() {
 
     processReversoSource({
         userName: 'vpasechnyk',
-        deck: 'en::new',
+        deck: 'de::new',
         srcLang: "de",
         trgLang: "ru",
         cardType: '1449230346958'
